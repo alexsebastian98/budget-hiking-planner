@@ -2,12 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const usersFile = path.join(__dirname, 'users.json');
+const JWT_SECRET = 'demo-secret-key';
 
 // Helper: read users from JSON file
 function readUsers() {
@@ -42,6 +44,27 @@ app.post('/api/register', (req, res) => {
   writeUsers(users);
 
   return res.status(201).json({ message: 'User registered successfully' });
+});
+
+// Login endpoint
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ message: 'Username and password required' });
+  }
+
+  const users = readUsers();
+  const user = users[username];
+
+  if (!user || user.password !== password) {
+    return res.status(401).json({ message: 'Invalid username or password' });
+  }
+
+  // Create JWT token
+  const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '24h' });
+
+  return res.json({ message: 'Login successful', token });
 });
 
 const PORT = 5000;
